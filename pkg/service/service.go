@@ -4,6 +4,7 @@ import (
 	"errors"
 	"final/pkg/structure"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -26,7 +27,7 @@ func WebToByte(url string) ([]byte, int) {
 	if err != nil {
 		errors.New(fmt.Sprint("Ошибка при получении данных. ", err))
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		errors.New(fmt.Sprint("Ошибка при чтении данных. ", err))
 	}

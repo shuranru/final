@@ -10,3 +10,5 @@ const SupportWeb string = `http://localhost:8383/support`
 const IncidentWeb string = `http://localhost:8383/accendent`
 
 const ServerWeb string = `localhost:8282`
+
+const TimeTicket float32 = 60.0 / 18.0

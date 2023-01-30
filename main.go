@@ -16,9 +16,6 @@ import (
 
 var CountryCode map[string]string
 var SMSMMSProviderName map[string]int
-var EmailDataSlice []structure.EmailData
-var SupportDataSlice []structure.SupportData
-var IncidentDataSlice []structure.IncidentData
 
 var Result structure.ResultSetT
 
@@ -27,38 +24,36 @@ func main() {
 	CountryCode = service.CountryCodeRead(CountryCode)
 	SMSMMSProviderName = service.SMSMMSProviderNameRead(SMSMMSProviderName)
 
-	EmailDataSlice = EmailFileRead()
-	SupportDataSlice = SupportWebRead()
-	IncidentDataSlice = IncidentWebRead()
-
 	SMSData := SMSModify(SMSFileRead())
 	MMSData := MMSModify(MMSWebRead())
 	VoiceCallData := VoiceFileRead()
-
+	EmailData := EmailModify(EmailFileRead())
 	BilingData := BilingFileRead()
+	SupportData := SupportModify(SupportWebRead())
+	IncidentData := IncidentModify(IncidentWebRead())
 
 	Result := structure.ResultSetT{
 		SMS:       SMSData,
 		MMS:       MMSData,
 		VoiceCall: VoiceCallData,
-
-		Billing: BilingData,
+		Email:     EmailData,
+		Billing:   BilingData,
+		Support:   SupportData,
+		Incidents: IncidentData,
 	}
 
 	fmt.Println(Result)
 	//fmt.Println("")
 	//fmt.Println(SMSModify(SMSDataSlice))
 	//fmt.Println(VoiceCallDataSlice)
-	//fmt.Println("")
+	//fmt.Println("\n\n============================")
 	//fmt.Println(EmailDataSlice)
-	//fmt.Println("")
+	//fmt.Println("\n\n============================")
 	//fmt.Println(BilingData)
 	//fmt.Println("")
 	//fmt.Println(MMSDataSlice)
-	//fmt.Println("")
-	//fmt.Println(SupportDataSlice)
-	//fmt.Println("")
-	//fmt.Println(IncidentDataSlice)
+	//fmt.Println("\n\n============================")
+	//fmt.Println(SupportData)
 
 	r := mux.NewRouter()
 
@@ -136,27 +131,27 @@ func SMSModify(smsTemp []structure.SMSData) [][]structure.SMSData {
 
 	returnSMSTemp := make([][]structure.SMSData, 2)
 
-	for i := 0; i <= sizeSMSData-1; i++ {
-		for j := sizeSMSData - 1; j >= i+1; j-- {
-			if smsTemp[j].Country < smsTemp[j-1].Country {
-				smsTemp[j], smsTemp[j-1] = smsTemp[j-1], smsTemp[j]
-			}
-		}
-	}
-	returnSMSTemp[0] = smsTemp
-
 	smsProviderTemp := make([]structure.SMSData, sizeSMSData)
 	copy(smsProviderTemp, smsTemp)
 
 	for i := 0; i <= sizeSMSData-1; i++ {
 		for j := sizeSMSData - 1; j >= i+1; j-- {
+			if smsTemp[j].Country < smsTemp[j-1].Country {
+				smsTemp[j], smsTemp[j-1] = smsTemp[j-1], smsTemp[j]
+			}
 			if smsProviderTemp[j].Provider < smsProviderTemp[j-1].Provider {
 				smsProviderTemp[j], smsProviderTemp[j-1] = smsProviderTemp[j-1], smsProviderTemp[j]
 			}
 		}
 	}
-
+	returnSMSTemp[0] = smsTemp
 	returnSMSTemp[1] = smsProviderTemp
+
+	//for i := 0; i <= sizeSMSData-1; i++ {
+	//	for j := sizeSMSData - 1; j >= i+1; j-- {
+	//
+	//	}
+	//}
 
 	return returnSMSTemp
 
@@ -281,6 +276,39 @@ func EmailFileRead() []structure.EmailData {
 
 }
 
+func EmailModify(emailData []structure.EmailData) map[string][][]structure.EmailData {
+
+	emailDataCountry := make(map[string][]structure.EmailData)
+
+	lenEmailData := len(emailData)
+
+	for i := 0; i <= lenEmailData-1; i++ {
+		for j := lenEmailData - 1; j >= i+1; j-- {
+			if emailData[j].DeliveryTime < emailData[j-1].DeliveryTime {
+				emailData[j], emailData[j-1] = emailData[j-1], emailData[j]
+			}
+		}
+	}
+
+	for _, v := range emailData {
+		emailDataCountry[v.Country] = append(emailDataCountry[v.Country], v)
+	}
+
+	returnEmailData := make(map[string][][]structure.EmailData, len(emailDataCountry))
+
+	for n, _ := range emailDataCountry {
+		returnEmailData[n] = make([][]structure.EmailData, 2)
+		lenEmailDataCountry := len(emailDataCountry[n])
+		for i := 0; i <= 2; i++ {
+			returnEmailData[n][0] = append(returnEmailData[n][0], emailDataCountry[n][i])
+			returnEmailData[n][1] = append(returnEmailData[n][1], emailDataCountry[n][lenEmailDataCountry-1-i])
+		}
+	}
+
+	return returnEmailData
+
+}
+
 func BilingFileRead() structure.BillingData {
 
 	billingBool := strings.Split(service.FileToSlice(config.BillingFile)[0], "")
@@ -347,27 +375,29 @@ func MMSModify(mmsTemp []structure.MMSData) [][]structure.MMSData {
 
 	returnMMSTemp := make([][]structure.MMSData, 2)
 
+	mmsProviderTemp := make([]structure.MMSData, sizeMMSData)
+	copy(mmsProviderTemp, mmsTemp)
+
 	for i := 0; i <= sizeMMSData-1; i++ {
 		for j := sizeMMSData - 1; j >= i+1; j-- {
 			if mmsTemp[j].Country < mmsTemp[j-1].Country {
 				mmsTemp[j], mmsTemp[j-1] = mmsTemp[j-1], mmsTemp[j]
 			}
-		}
-	}
-	returnMMSTemp[0] = mmsTemp
-
-	smsProviderTemp := make([]structure.MMSData, sizeMMSData)
-	copy(smsProviderTemp, mmsTemp)
-
-	for i := 0; i <= sizeMMSData-1; i++ {
-		for j := sizeMMSData - 1; j >= i+1; j-- {
-			if smsProviderTemp[j].Provider < smsProviderTemp[j-1].Provider {
-				smsProviderTemp[j], smsProviderTemp[j-1] = smsProviderTemp[j-1], smsProviderTemp[j]
+			if mmsProviderTemp[j].Provider < mmsProviderTemp[j-1].Provider {
+				mmsProviderTemp[j], mmsProviderTemp[j-1] = mmsProviderTemp[j-1], mmsProviderTemp[j]
 			}
 		}
 	}
+	returnMMSTemp[0] = mmsTemp
+	returnMMSTemp[1] = mmsProviderTemp
 
-	returnMMSTemp[1] = smsProviderTemp
+	//for i := 0; i <= sizeMMSData-1; i++ {
+	//	for j := sizeMMSData - 1; j >= i+1; j-- {
+	//		if mmsProviderTemp[j].Provider < mmsProviderTemp[j-1].Provider {
+	//			mmsProviderTemp[j], mmsProviderTemp[j-1] = mmsProviderTemp[j-1], mmsProviderTemp[j]
+	//		}
+	//	}
+	//}
 
 	return returnMMSTemp
 
@@ -388,6 +418,30 @@ func SupportWebRead() []structure.SupportData {
 	}
 
 	return supportDataTemp
+
+}
+
+func SupportModify(supportData []structure.SupportData) []int {
+
+	supportModifyTemp := make([]int, 2)
+
+	ticketCount := 0
+
+	for _, v := range supportData {
+		ticketCount += v.ActiveTickets
+	}
+
+	if ticketCount >= 0 && ticketCount < 9 {
+		supportModifyTemp[0] = 1
+	} else if ticketCount >= 9 && ticketCount <= 16 {
+		supportModifyTemp[0] = 2
+	} else {
+		supportModifyTemp[0] = 3
+	}
+
+	supportModifyTemp[1] = int(float32(ticketCount) * config.TimeTicket)
+
+	return supportModifyTemp
 
 }
 
@@ -412,5 +466,27 @@ func IncidentWebRead() []structure.IncidentData {
 	}
 
 	return incidentDataTemp
+
+}
+
+func IncidentModify(incident []structure.IncidentData) []structure.IncidentData {
+
+	lenIncident := len(incident)
+	incidentTemp := make([]structure.IncidentData, lenIncident)
+
+	activeCount := 0
+	closeCount := lenIncident - 1
+
+	for i := 0; i <= lenIncident-1; i++ {
+		if incident[i].Status == "active" {
+			incidentTemp[activeCount] = incident[i]
+			activeCount++
+		} else {
+			incidentTemp[closeCount] = incident[i]
+			closeCount--
+		}
+	}
+
+	return incidentTemp
 
 }
