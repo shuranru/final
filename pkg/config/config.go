@@ -8,3 +8,5 @@ const VoiceFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\voice.d
 const MMSWeb string = `http://localhost:8383/mms`
 const SupportWeb string = `http://localhost:8383/support`
 const IncidentWeb string = `http://localhost:8383/accendent`
+
+const ServerWeb string = `localhost:8282`

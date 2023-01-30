@@ -7,7 +7,9 @@ import (
 	"final/pkg/service"
 	"final/pkg/structure"
 	"fmt"
+	"github.com/gorilla/mux"
 	"math"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -15,7 +17,7 @@ import (
 var CountryCode map[string]string
 var SMSMMSProviderName map[string]int
 var SMSDataSlice []structure.SMSData
-var VoiceDataSlice []structure.VoiceData
+var VoiceCallDataSlice []structure.VoiceCallData
 var EmailDataSlice []structure.EmailData
 var BilingData structure.BillingData
 var MMSDataSlice []structure.MMSData
@@ -28,7 +30,7 @@ func main() {
 	SMSMMSProviderName = service.SMSMMSProviderNameRead(SMSMMSProviderName)
 
 	SMSDataSlice = SMSFileRead()
-	VoiceDataSlice = VoiceFileRead()
+	VoiceCallDataSlice = VoiceFileRead()
 	EmailDataSlice = EmailFileRead()
 	BilingData = BilingFileRead()
 	MMSDataSlice = MMSWebRead()
@@ -37,7 +39,7 @@ func main() {
 
 	fmt.Println(SMSDataSlice)
 	fmt.Println("")
-	//fmt.Println(VoiceDataSlice)
+	//fmt.Println(VoiceCallDataSlice)
 	//fmt.Println("")
 	//fmt.Println(EmailDataSlice)
 	//fmt.Println("")
@@ -49,6 +51,28 @@ func main() {
 	//fmt.Println("")
 	//fmt.Println(IncidentDataSlice)
 
+	r := mux.NewRouter()
+
+	//done := make(chan os.Signal, 1)
+	//signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	r.HandleFunc("/", handleConnection)
+
+	//if err := http.ListenAndServe(config.ServerWeb, r); err != nil && err != http.ErrServerClosed {
+	//	log.Fatalf("Ошибка запуска сервера: %v", err)
+	//}
+
+}
+
+func handleConnection(w http.ResponseWriter, r *http.Request) {
+	//userId := chi.URLParam(r, "user_id")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Ok"))
+}
+
+func getResultData() structure.ResultSetT {
+
+	return structure.ResultSetT{}
 }
 
 func SMSFileRead() []structure.SMSData {
@@ -93,11 +117,11 @@ func SMSFileRead() []structure.SMSData {
 
 }
 
-func VoiceFileRead() []structure.VoiceData {
+func VoiceFileRead() []structure.VoiceCallData {
 
 	voiceArray := service.FileToSlice(config.VoiceFile)
 
-	var voiceDateTemp []structure.VoiceData
+	var voiceDateTemp []structure.VoiceCallData
 	for _, v := range voiceArray {
 		voiceTemp := strings.Split(v, ";")
 		if len(voiceTemp) != 8 {
@@ -155,7 +179,7 @@ func VoiceFileRead() []structure.VoiceData {
 		if voiceTemp[3] != "TransparentCalls" && voiceTemp[3] != "E-Voice" && voiceTemp[3] != "JustPhone" {
 			continue
 		}
-		voiceDateTemp = append(voiceDateTemp, structure.VoiceData{voiceTemp[0], bandwidthTemp, responseTimeTemp, voiceTemp[3], stabilityTemp, ttfbTemp, purityTemp, durationTemp})
+		voiceDateTemp = append(voiceDateTemp, structure.VoiceCallData{voiceTemp[0], bandwidthTemp, responseTimeTemp, voiceTemp[3], stabilityTemp, ttfbTemp, purityTemp, durationTemp})
 
 	}
 
