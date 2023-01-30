@@ -16,30 +16,38 @@ import (
 
 var CountryCode map[string]string
 var SMSMMSProviderName map[string]int
-var SMSDataSlice []structure.SMSData
-var VoiceCallDataSlice []structure.VoiceCallData
 var EmailDataSlice []structure.EmailData
-var BilingData structure.BillingData
-var MMSDataSlice []structure.MMSData
 var SupportDataSlice []structure.SupportData
 var IncidentDataSlice []structure.IncidentData
+
+var Result structure.ResultSetT
 
 func main() {
 
 	CountryCode = service.CountryCodeRead(CountryCode)
 	SMSMMSProviderName = service.SMSMMSProviderNameRead(SMSMMSProviderName)
 
-	SMSDataSlice = SMSFileRead()
-	VoiceCallDataSlice = VoiceFileRead()
 	EmailDataSlice = EmailFileRead()
-	BilingData = BilingFileRead()
-	MMSDataSlice = MMSWebRead()
 	SupportDataSlice = SupportWebRead()
 	IncidentDataSlice = IncidentWebRead()
 
-	fmt.Println(SMSDataSlice)
-	fmt.Println("")
-	fmt.Println(SMSModify(SMSDataSlice))
+	SMSData := SMSModify(SMSFileRead())
+	MMSData := MMSModify(MMSWebRead())
+	VoiceCallData := VoiceFileRead()
+
+	BilingData := BilingFileRead()
+
+	Result := structure.ResultSetT{
+		SMS:       SMSData,
+		MMS:       MMSData,
+		VoiceCall: VoiceCallData,
+
+		Billing: BilingData,
+	}
+
+	fmt.Println(Result)
+	//fmt.Println("")
+	//fmt.Println(SMSModify(SMSDataSlice))
 	//fmt.Println(VoiceCallDataSlice)
 	//fmt.Println("")
 	//fmt.Println(EmailDataSlice)
@@ -126,7 +134,7 @@ func SMSModify(smsTemp []structure.SMSData) [][]structure.SMSData {
 
 	sizeSMSData := len(smsTemp)
 
-	returnSMSTemp := make([][]structure.SMSData, 2, sizeSMSData)
+	returnSMSTemp := make([][]structure.SMSData, 2)
 
 	for i := 0; i <= sizeSMSData-1; i++ {
 		for j := sizeSMSData - 1; j >= i+1; j-- {
@@ -326,6 +334,42 @@ func MMSWebRead() []structure.MMSData {
 	}
 
 	return mmsDataTemp
+
+}
+
+func MMSModify(mmsTemp []structure.MMSData) [][]structure.MMSData {
+
+	for n, _ := range mmsTemp {
+		mmsTemp[n].Country = CountryCode[mmsTemp[n].Country]
+	}
+
+	sizeMMSData := len(mmsTemp)
+
+	returnMMSTemp := make([][]structure.MMSData, 2)
+
+	for i := 0; i <= sizeMMSData-1; i++ {
+		for j := sizeMMSData - 1; j >= i+1; j-- {
+			if mmsTemp[j].Country < mmsTemp[j-1].Country {
+				mmsTemp[j], mmsTemp[j-1] = mmsTemp[j-1], mmsTemp[j]
+			}
+		}
+	}
+	returnMMSTemp[0] = mmsTemp
+
+	smsProviderTemp := make([]structure.MMSData, sizeMMSData)
+	copy(smsProviderTemp, mmsTemp)
+
+	for i := 0; i <= sizeMMSData-1; i++ {
+		for j := sizeMMSData - 1; j >= i+1; j-- {
+			if smsProviderTemp[j].Provider < smsProviderTemp[j-1].Provider {
+				smsProviderTemp[j], smsProviderTemp[j-1] = smsProviderTemp[j-1], smsProviderTemp[j]
+			}
+		}
+	}
+
+	returnMMSTemp[1] = smsProviderTemp
+
+	return returnMMSTemp
 
 }
 
