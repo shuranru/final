@@ -39,6 +39,7 @@ func main() {
 
 	fmt.Println(SMSDataSlice)
 	fmt.Println("")
+	fmt.Println(SMSModify(SMSDataSlice))
 	//fmt.Println(VoiceCallDataSlice)
 	//fmt.Println("")
 	//fmt.Println(EmailDataSlice)
@@ -114,6 +115,42 @@ func SMSFileRead() []structure.SMSData {
 	}
 
 	return smsDateTemp
+
+}
+
+func SMSModify(smsTemp []structure.SMSData) [][]structure.SMSData {
+
+	for n, _ := range smsTemp {
+		smsTemp[n].Country = CountryCode[smsTemp[n].Country]
+	}
+
+	sizeSMSData := len(smsTemp)
+
+	returnSMSTemp := make([][]structure.SMSData, 2, sizeSMSData)
+
+	for i := 0; i <= sizeSMSData-1; i++ {
+		for j := sizeSMSData - 1; j >= i+1; j-- {
+			if smsTemp[j].Country < smsTemp[j-1].Country {
+				smsTemp[j], smsTemp[j-1] = smsTemp[j-1], smsTemp[j]
+			}
+		}
+	}
+	returnSMSTemp[0] = smsTemp
+
+	smsProviderTemp := make([]structure.SMSData, sizeSMSData)
+	copy(smsProviderTemp, smsTemp)
+
+	for i := 0; i <= sizeSMSData-1; i++ {
+		for j := sizeSMSData - 1; j >= i+1; j-- {
+			if smsProviderTemp[j].Provider < smsProviderTemp[j-1].Provider {
+				smsProviderTemp[j], smsProviderTemp[j-1] = smsProviderTemp[j-1], smsProviderTemp[j]
+			}
+		}
+	}
+
+	returnSMSTemp[1] = smsProviderTemp
+
+	return returnSMSTemp
 
 }
 
