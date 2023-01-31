@@ -11,4 +11,4 @@ const IncidentWeb string = `http://localhost:8383/accendent`
 
 const ServerWeb string = `localhost:8282`
 
-const TimeTicket float32 = 60.0 / 18.0
+const TimeTicket float32 = 60.0 / 18.0 //Среднее время обработки тикета
