@@ -9,6 +9,7 @@ import (
 	"final/pkg/structure"
 	"fmt"
 	"github.com/gorilla/mux"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -22,42 +23,58 @@ func main() {
 
 	r := mux.NewRouter()
 
-	//done := make(chan os.Signal, 1)
-	//signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
 	r.HandleFunc("/", handleConnection)
 
-	//if err := http.ListenAndServe(config.ServerWeb, r); err != nil && err != http.ErrServerClosed {
-	//	log.Fatalf("Ошибка запуска сервера: %v", err)
-	//}
+	if err := http.ListenAndServe(config.ServerWeb, r); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Ошибка запуска сервера: %v", err)
+	}
 
 }
 
 func handleConnection(w http.ResponseWriter, r *http.Request) {
-	//userId := chi.URLParam(r, "user_id")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Ok"))
+
 }
 
 func getResultData() structure.ResultSetT {
 
-	chanSMS := make(chan [][]structure.SMSData, 1)
-	chanMMS := make(chan [][]structure.SMSData, 1)
+	var wg sync.WaitGroup
 
-	SMSData := SMSModify(SMSFileRead())
-	MMSData := MMSModify(MMSWebRead())
-	VoiceCallData := VoiceFileRead()
-	EmailData := EmailModify(EmailFileRead())
-	BilingData := BillingFileRead()
-	SupportData := SupportModify(SupportWebRead())
-	IncidentData := IncidentModify(IncidentWebRead())
+	chanSMS := make(chan [][]structure.SMSData, 1)
+	chanMMS := make(chan [][]structure.MMSData, 1)
+	chanVoice := make(chan []structure.VoiceCallData, 1)
+	chanEmail := make(chan map[string][][]structure.EmailData, 1)
+	chanBilling := make(chan structure.BillingData, 1)
+	chanSupport := make(chan []int, 1)
+	chanIncident := make(chan []structure.IncidentData, 1)
+
+	wg.Add(7)
+
+	go SMSModify(SMSFileRead(), &wg, chanSMS)
+	go MMSModify(MMSWebRead(), &wg, chanMMS)
+	go VoiceFileRead(&wg, chanVoice)
+	go EmailModify(EmailFileRead(), &wg, chanEmail)
+	go BillingFileRead(&wg, chanBilling)
+	go SupportModify(SupportWebRead(), &wg, chanSupport)
+	go IncidentModify(IncidentWebRead(), &wg, chanIncident)
+
+	wg.Wait()
+
+	SMSData := <-chanSMS
+	MMSData := <-chanMMS
+	VoiceCallData := <-chanVoice
+	EmailData := <-chanEmail
+	BillingData := <-chanBilling
+	SupportData := <-chanSupport
+	IncidentData := <-chanIncident
 
 	Result := structure.ResultSetT{
 		SMS:       SMSData,
 		MMS:       MMSData,
 		VoiceCall: VoiceCallData,
 		Email:     EmailData,
-		Billing:   BilingData,
+		Billing:   BillingData,
 		Support:   SupportData,
 		Incidents: IncidentData,
 	}
@@ -75,8 +92,7 @@ func SMSFileRead() []structure.SMSData {
 			continue
 		}
 		smsTemp[0] = strings.ToUpper(smsTemp[0])
-		_, ok := list.CountryCodeMap[smsTemp[0]]
-		if ok != true {
+		if _, ok := list.CountryCodeMap[smsTemp[0]]; !ok {
 			continue
 		}
 		bandwidthTemp, err := strconv.Atoi(smsTemp[1])
@@ -93,9 +109,6 @@ func SMSFileRead() []structure.SMSData {
 		if responseTimeTemp < 0 {
 			continue
 		}
-		//if smsTemp[3] != "Topolo" && smsTemp[3] != "Rond" && smsTemp[3] != "Kildy" {
-		//	continue
-		//}
 		if _, ok := list.ProviderNameMap[smsTemp[3]]; !ok {
 			continue
 		}
@@ -134,11 +147,18 @@ func MMSWebRead() []structure.MMSData {
 
 }
 
-func VoiceFileRead() []structure.VoiceCallData {
+func VoiceFileRead(wg *sync.WaitGroup, chanVoice chan []structure.VoiceCallData) {
 
 	voiceArray := service.FileToSlice(config.VoiceFile)
+	if len(voiceArray) == 0 {
+		fmt.Println("Voice: Ошибка во входящих данных . Нет данных")
+		chanVoice <- []structure.VoiceCallData{}
+		wg.Done()
+		return
+	}
 
 	var voiceDateTemp []structure.VoiceCallData
+
 	for _, v := range voiceArray {
 		voiceTemp := strings.Split(v, ";")
 		if len(voiceTemp) != 8 {
@@ -200,7 +220,9 @@ func VoiceFileRead() []structure.VoiceCallData {
 
 	}
 
-	return voiceDateTemp
+	chanVoice <- voiceDateTemp
+	wg.Done()
+	return
 
 }
 
@@ -237,23 +259,35 @@ func EmailFileRead() []structure.EmailData {
 
 }
 
-func BillingFileRead() structure.BillingData {
+func BillingFileRead(wg *sync.WaitGroup, chanBilling chan structure.BillingData) {
 
 	billingBool := strings.Split(service.FileToSlice(config.BillingFile)[0], "")
+	if len(billingBool) == 0 {
+		fmt.Println("Billing: Ошибка во входящих данных. Нет данных")
+		chanBilling <- structure.BillingData{}
+		wg.Done()
+		return
+	}
+
+	var billingDateTemp structure.BillingData
+
 	var billingDec uint8 = 0
 
 	lenBillingBool := len(billingBool)
 
 	for n, v := range billingBool {
-		if v != "1" && v != "0" {
-			panic(errors.New("Ошибка во входящих данных билинга"))
+		if v != "1" || v != "0" || lenBillingBool != 6 {
+			fmt.Println("Billing: Ошибка во входящих данных билинга")
+			chanBilling <- billingDateTemp
+			wg.Done()
+			return
 		}
 		if v == "1" {
 			billingDec += uint8(math.Pow(2, float64(lenBillingBool)-1-float64(n)))
 		}
 	}
 
-	billingDateTemp := structure.BillingData{
+	billingDateTemp = structure.BillingData{
 		service.CheckBool(billingBool[0]),
 		service.CheckBool(billingBool[1]),
 		service.CheckBool(billingBool[2]),
@@ -261,8 +295,9 @@ func BillingFileRead() structure.BillingData {
 		service.CheckBool(billingBool[4]),
 		service.CheckBool(billingBool[5]),
 	}
-
-	return billingDateTemp
+	chanBilling <- billingDateTemp
+	wg.Done()
+	return
 
 }
 
@@ -310,19 +345,25 @@ func IncidentWebRead() []structure.IncidentData {
 
 func SMSModify(smsTemp []structure.SMSData, wg *sync.WaitGroup, chanSMS chan [][]structure.SMSData) {
 
+	lenSMSData := len(smsTemp)
+	if lenSMSData == 0 {
+		fmt.Println("SMS: Ошибка во входящих данных. Нет данных")
+		chanSMS <- [][]structure.SMSData{}
+		wg.Done()
+		return
+	}
+
+	returnSMSTemp := make([][]structure.SMSData, 2)
+
 	for n, _ := range smsTemp {
 		smsTemp[n].Country = list.CountryCodeMap[smsTemp[n].Country]
 	}
 
-	sizeSMSData := len(smsTemp)
-
-	returnSMSTemp := make([][]structure.SMSData, 2)
-
-	smsProviderTemp := make([]structure.SMSData, sizeSMSData)
+	smsProviderTemp := make([]structure.SMSData, lenSMSData)
 	copy(smsProviderTemp, smsTemp)
 
-	for i := 0; i <= sizeSMSData-1; i++ {
-		for j := sizeSMSData - 1; j >= i+1; j-- {
+	for i := 0; i <= lenSMSData-1; i++ {
+		for j := lenSMSData - 1; j >= i+1; j-- {
 			if smsTemp[j].Country < smsTemp[j-1].Country {
 				smsTemp[j], smsTemp[j-1] = smsTemp[j-1], smsTemp[j]
 			}
@@ -334,25 +375,33 @@ func SMSModify(smsTemp []structure.SMSData, wg *sync.WaitGroup, chanSMS chan [][
 	returnSMSTemp[0] = smsTemp
 	returnSMSTemp[1] = smsProviderTemp
 
+	chanSMS <- returnSMSTemp
 	wg.Done()
+	return
 
 }
 
-func MMSModify(mmsTemp []structure.MMSData) [][]structure.MMSData {
+func MMSModify(mmsTemp []structure.MMSData, wg *sync.WaitGroup, chanMMS chan [][]structure.MMSData) {
+
+	lenMMSData := len(mmsTemp)
+	if lenMMSData == 0 {
+		fmt.Println("MMS: Ошибка во входящих данных. Нет данных")
+		chanMMS <- [][]structure.MMSData{}
+		wg.Done()
+		return
+	}
+
+	returnMMSTemp := make([][]structure.MMSData, 2)
 
 	for n, _ := range mmsTemp {
 		mmsTemp[n].Country = list.CountryCodeMap[mmsTemp[n].Country]
 	}
 
-	sizeMMSData := len(mmsTemp)
-
-	returnMMSTemp := make([][]structure.MMSData, 2)
-
-	mmsProviderTemp := make([]structure.MMSData, sizeMMSData)
+	mmsProviderTemp := make([]structure.MMSData, lenMMSData)
 	copy(mmsProviderTemp, mmsTemp)
 
-	for i := 0; i <= sizeMMSData-1; i++ {
-		for j := sizeMMSData - 1; j >= i+1; j-- {
+	for i := 0; i <= lenMMSData-1; i++ {
+		for j := lenMMSData - 1; j >= i+1; j-- {
 			if mmsTemp[j].Country < mmsTemp[j-1].Country {
 				mmsTemp[j], mmsTemp[j-1] = mmsTemp[j-1], mmsTemp[j]
 			}
@@ -364,23 +413,23 @@ func MMSModify(mmsTemp []structure.MMSData) [][]structure.MMSData {
 	returnMMSTemp[0] = mmsTemp
 	returnMMSTemp[1] = mmsProviderTemp
 
-	//for i := 0; i <= sizeMMSData-1; i++ {
-	//	for j := sizeMMSData - 1; j >= i+1; j-- {
-	//		if mmsProviderTemp[j].Provider < mmsProviderTemp[j-1].Provider {
-	//			mmsProviderTemp[j], mmsProviderTemp[j-1] = mmsProviderTemp[j-1], mmsProviderTemp[j]
-	//		}
-	//	}
-	//}
-
-	return returnMMSTemp
+	chanMMS <- returnMMSTemp
+	wg.Done()
+	return
 
 }
 
-func EmailModify(emailData []structure.EmailData) map[string][][]structure.EmailData {
-
-	emailDataCountry := make(map[string][]structure.EmailData)
+func EmailModify(emailData []structure.EmailData, wg *sync.WaitGroup, chanEmail chan map[string][][]structure.EmailData) {
 
 	lenEmailData := len(emailData)
+	if lenEmailData == 0 {
+		fmt.Println("Email: Ошибка во входящих данных. Нет данных")
+		chanEmail <- map[string][][]structure.EmailData{}
+		wg.Done()
+		return
+	}
+
+	emailDataCountry := make(map[string][]structure.EmailData)
 
 	for i := 0; i <= lenEmailData-1; i++ {
 		for j := lenEmailData - 1; j >= i+1; j-- {
@@ -405,11 +454,20 @@ func EmailModify(emailData []structure.EmailData) map[string][][]structure.Email
 		}
 	}
 
-	return returnEmailData
+	chanEmail <- returnEmailData
+	wg.Done()
+	return
 
 }
 
-func SupportModify(supportData []structure.SupportData) []int {
+func SupportModify(supportData []structure.SupportData, wg *sync.WaitGroup, chanSupport chan []int) {
+
+	if len(supportData) == 0 {
+		fmt.Println("Support: Ошибка во входящих данных. Нет данных")
+		chanSupport <- []int{}
+		wg.Done()
+		return
+	}
 
 	supportModifyTemp := make([]int, 2)
 
@@ -429,13 +487,22 @@ func SupportModify(supportData []structure.SupportData) []int {
 
 	supportModifyTemp[1] = int(float32(ticketCount) * config.TimeTicket)
 
-	return supportModifyTemp
+	chanSupport <- supportModifyTemp
+	wg.Done()
+	return
 
 }
 
-func IncidentModify(incident []structure.IncidentData) []structure.IncidentData {
+func IncidentModify(incident []structure.IncidentData, wg *sync.WaitGroup, chanIncident chan []structure.IncidentData) {
 
 	lenIncident := len(incident)
+	if lenIncident == 0 {
+		fmt.Println("Incident: Ошибка во входящих данных. Нет данных")
+		chanIncident <- []structure.IncidentData{}
+		wg.Done()
+		return
+	}
+
 	incidentTemp := make([]structure.IncidentData, lenIncident)
 
 	activeCount := 0
@@ -451,6 +518,7 @@ func IncidentModify(incident []structure.IncidentData) []structure.IncidentData 
 		}
 	}
 
-	return incidentTemp
-
+	chanIncident <- incidentTemp
+	wg.Done()
+	return
 }

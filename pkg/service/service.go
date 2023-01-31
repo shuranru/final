@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"final/pkg/structure"
 	"fmt"
 	"io"
@@ -12,11 +11,13 @@ import (
 
 func FileToSlice(filename string) []string {
 
+	var content []string
+
 	contentTemp, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		fmt.Println("Ошибка чтения из файла", filename)
 	}
-	var content []string = strings.Split(string(contentTemp), "\n")
+	content = strings.Split(string(contentTemp), "\n")
 
 	return content
 }
@@ -25,11 +26,13 @@ func WebToByte(url string) ([]byte, int) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		errors.New(fmt.Sprint("Ошибка при получении данных. ", err))
+		fmt.Println("Ошибка при получении данных. ", err)
+		return nil, 502
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		errors.New(fmt.Sprint("Ошибка при чтении данных. ", err))
+		fmt.Println("Ошибка при получении данных. ", err)
+		return nil, 500
 	}
 	defer resp.Body.Close()
 
