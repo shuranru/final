@@ -1,14 +1,14 @@
 package config
 
-const SMSFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\sms.data`
-const BillingFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\billing.data`
-const EmailFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\email.data`
-const VoiceFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\voice.data`
+const SMSFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\sms.data`         //Адрес файла для загрузки данных SMS
+const BillingFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\billing.data` //Адрес файла для загрузки данных Billing
+const EmailFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\email.data`     //Адрес файла для загрузки данных Email
+const VoiceFile string = `C:\Users\shura\GolandProjects\skillbox-diploma\voice.data`     //Адрес файла для загрузки данных Voice
 
-const MMSWeb string = `http://localhost:8383/mms`
-const SupportWeb string = `http://localhost:8383/support`
-const IncidentWeb string = `http://localhost:8383/accendent`
+const MMSWeb string = `http://localhost:8383/mms`            //Адрес загрузки данных MMS
+const SupportWeb string = `http://localhost:8383/support`    //Адрес загрузки данных Support
+const IncidentWeb string = `http://localhost:8383/accendent` //Адрес загрузки данных Incident
 
-const ServerWeb string = `localhost:8282`
+const ServerWeb string = `localhost:8282` //Адрес локального сервера для запуска
 
 const TimeTicket float32 = 60.0 / 18.0 //Среднее время обработки тикета
