@@ -6,7 +6,6 @@ import (
 	"final/pkg/list"
 	"final/pkg/service"
 	"final/pkg/structure"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -58,7 +57,7 @@ func MMSWebRead() []structure.MMSData {
 
 	if status == 200 {
 		if err := json.Unmarshal(content, &mmsDataTemp); err != nil {
-			fmt.Println("MMS: Ошибка в формате JSON. ", err)
+			service.LogWrite("MMS: Ошибка в формате JSON: "+error.Error(err), "warn")
 			return []structure.MMSData{}
 		}
 
@@ -73,7 +72,7 @@ func MMSWebRead() []structure.MMSData {
 			}
 		}
 	} else {
-		fmt.Println("MMS: Ошибка при получении данных.")
+		service.LogWrite("MMS: Ошибка при получении данных.", "warn")
 		return []structure.MMSData{}
 	}
 
@@ -144,7 +143,7 @@ func VoiceFileRead() []structure.VoiceCallData {
 		if voiceTemp[3] != "TransparentCalls" && voiceTemp[3] != "E-Voice" && voiceTemp[3] != "JustPhone" {
 			continue
 		}
-		voiceDateTemp = append(voiceDateTemp, structure.VoiceCallData{Country: voiceTemp[0], Bandwidth: bandwidthTemp, ResponseTime: responseTimeTemp, Provider: voiceTemp[3], Stability: stabilityTemp, TTFB: ttfbTemp, Purity: purityTemp, Duration: durationTemp})
+		voiceDateTemp = append(voiceDateTemp, structure.VoiceCallData{Country: voiceTemp[0], Bandwidth: bandwidthTemp, ResponseTime: responseTimeTemp, Provider: voiceTemp[3], ConnectionStability: stabilityTemp, TTFB: ttfbTemp, VoicePurity: purityTemp, MedianOfCallsTime: durationTemp})
 
 	}
 
@@ -228,11 +227,11 @@ func SupportWebRead() []structure.SupportData {
 
 	if status == 200 {
 		if err := json.Unmarshal(content, &supportDataTemp); err != nil {
-			fmt.Println("Support: Ошибка в формате JSON. ", err)
+			service.LogWrite("Support: Ошибка в формате JSON: "+error.Error(err), "warn")
 			return []structure.SupportData{}
 		}
 	} else {
-		fmt.Println("Support: Ошибка при получении данных.")
+		service.LogWrite("Support: Ошибка при получении данных.", "warn")
 		return []structure.SupportData{}
 	}
 
@@ -248,7 +247,7 @@ func IncidentWebRead() []structure.IncidentData {
 
 	if status == 200 {
 		if err := json.Unmarshal(content, &incidentDataTemp); err != nil {
-			fmt.Println("Incident: Ошибка в формате JSON. ", err)
+			service.LogWrite("Incident: Ошибка в формате JSON: "+error.Error(err), "warn")
 			return []structure.IncidentData{}
 		}
 		for n := range incidentDataTemp {
@@ -258,7 +257,7 @@ func IncidentWebRead() []structure.IncidentData {
 			}
 		}
 	} else {
-		fmt.Println("Incident:  Ошибка при получении данных.")
+		service.LogWrite("Incident:  Ошибка при получении данных.", "warn")
 		return []structure.IncidentData{}
 	}
 

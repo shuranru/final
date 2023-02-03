@@ -3,20 +3,19 @@ package modify
 import (
 	"final/pkg/config"
 	"final/pkg/list"
+	"final/pkg/read"
+	"final/pkg/service"
 	"final/pkg/structure"
-	"fmt"
-	"sync"
 )
 
-func SMSModify(smsTemp []structure.SMSData, wg *sync.WaitGroup, chanSMS chan [][]structure.SMSData, chanError chan string) {
+func SMSModify(chanSMS chan [][]structure.SMSData) {
+
+	smsTemp := read.SMSFileRead()
 
 	lenSMSData := len(smsTemp)
 	if lenSMSData == 0 {
-		errorMessage := "SMS: Ошибка во входящих данных. Нет данных"
-		fmt.Println(errorMessage)
-		chanError <- errorMessage
+		service.LogWrite("SMS: Ошибка во входящих данных. Нет данных", "warn")
 		chanSMS <- [][]structure.SMSData{}
-		wg.Done()
 		return
 	}
 
@@ -43,20 +42,18 @@ func SMSModify(smsTemp []structure.SMSData, wg *sync.WaitGroup, chanSMS chan [][
 	returnSMSTemp[1] = smsProviderTemp
 
 	chanSMS <- returnSMSTemp
-	wg.Done()
 	return
 
 }
 
-func MMSModify(mmsTemp []structure.MMSData, wg *sync.WaitGroup, chanMMS chan [][]structure.MMSData, chanError chan string) {
+func MMSModify(chanMMS chan [][]structure.MMSData) {
+
+	mmsTemp := read.MMSWebRead()
 
 	lenMMSData := len(mmsTemp)
 	if lenMMSData == 0 {
-		errorMessage := "MMS: Ошибка во входящих данных. Нет данных"
-		fmt.Println(errorMessage)
-		chanError <- errorMessage
+		service.LogWrite("MMS: Ошибка во входящих данных. Нет данных", "warn")
 		chanMMS <- [][]structure.MMSData{}
-		wg.Done()
 		return
 	}
 
@@ -83,37 +80,33 @@ func MMSModify(mmsTemp []structure.MMSData, wg *sync.WaitGroup, chanMMS chan [][
 	returnMMSTemp[1] = mmsProviderTemp
 
 	chanMMS <- returnMMSTemp
-	wg.Done()
 	return
 
 }
 
-func VoiceModify(voiceTemp []structure.VoiceCallData, wg *sync.WaitGroup, chanVoice chan []structure.VoiceCallData, chanError chan string) {
+func VoiceModify(chanVoice chan []structure.VoiceCallData) {
+
+	voiceTemp := read.VoiceFileRead()
 
 	if len(voiceTemp) == 0 {
-		errorMessage := "Voice: Ошибка во входящих данных. Нет данных"
-		fmt.Println(errorMessage)
-		chanError <- errorMessage
+		service.LogWrite("Voice: Ошибка во входящих данных. Нет данных", "warn")
 		chanVoice <- []structure.VoiceCallData{}
-		wg.Done()
 		return
 	}
 
 	chanVoice <- voiceTemp
-	wg.Done()
 	return
 
 }
 
-func EmailModify(emailData []structure.EmailData, wg *sync.WaitGroup, chanEmail chan map[string][][]structure.EmailData, chanError chan string) {
+func EmailModify(chanEmail chan map[string][][]structure.EmailData) {
+
+	emailData := read.EmailFileRead()
 
 	lenEmailData := len(emailData)
 	if lenEmailData == 0 {
-		errorMessage := "Email: Ошибка во входящих данных. Нет данных"
-		fmt.Println(errorMessage)
-		chanError <- errorMessage
+		service.LogWrite("Email: Ошибка во входящих данных. Нет данных", "warn")
 		chanEmail <- map[string][][]structure.EmailData{}
-		wg.Done()
 		return
 	}
 
@@ -143,35 +136,32 @@ func EmailModify(emailData []structure.EmailData, wg *sync.WaitGroup, chanEmail 
 	}
 
 	chanEmail <- returnEmailData
-	wg.Done()
 	return
 
 }
 
-func BillingModify(billingTemp structure.BillingData, err string, wg *sync.WaitGroup, chanBilling chan structure.BillingData, chanError chan string) {
+func BillingModify(chanBilling chan structure.BillingData) {
+
+	billingTempStruct, err := read.BillingFileRead()
 
 	if err != "" {
-		fmt.Println(err)
-		chanError <- err
-		chanBilling <- billingTemp
-		wg.Done()
+		service.LogWrite(err, "warn")
+		chanBilling <- billingTempStruct
 		return
 	}
 
-	chanBilling <- billingTemp
-	wg.Done()
+	chanBilling <- billingTempStruct
 	return
 
 }
 
-func SupportModify(supportData []structure.SupportData, wg *sync.WaitGroup, chanSupport chan []int, chanError chan string) {
+func SupportModify(chanSupport chan []int) {
+
+	supportData := read.SupportWebRead()
 
 	if len(supportData) == 0 {
-		errorMessage := "Support: Ошибка во входящих данных. Нет данных"
-		fmt.Println(errorMessage)
-		chanError <- errorMessage
+		service.LogWrite("Support: Ошибка во входящих данных. Нет данных", "warn")
 		chanSupport <- []int{}
-		wg.Done()
 		return
 	}
 
@@ -194,20 +184,18 @@ func SupportModify(supportData []structure.SupportData, wg *sync.WaitGroup, chan
 	supportModifyTemp[1] = int(float32(ticketCount) * config.TimeTicket)
 
 	chanSupport <- supportModifyTemp
-	wg.Done()
 	return
 
 }
 
-func IncidentModify(incident []structure.IncidentData, wg *sync.WaitGroup, chanIncident chan []structure.IncidentData, chanError chan string) {
+func IncidentModify(chanIncident chan []structure.IncidentData) {
+
+	incident := read.IncidentWebRead()
 
 	lenIncident := len(incident)
 	if lenIncident == 0 {
-		errorMessage := "Incident: Ошибка во входящих данных. Нет данных"
-		fmt.Println(errorMessage)
-		chanError <- errorMessage
+		service.LogWrite("Incident: Ошибка во входящих данных. Нет данных", "warn")
 		chanIncident <- []structure.IncidentData{}
-		wg.Done()
 		return
 	}
 
@@ -227,6 +215,5 @@ func IncidentModify(incident []structure.IncidentData, wg *sync.WaitGroup, chanI
 	}
 
 	chanIncident <- incidentTemp
-	wg.Done()
 	return
 }

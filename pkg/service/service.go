@@ -2,11 +2,12 @@ package service
 
 import (
 	"final/pkg/structure"
-	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func FileToSlice(filename string) []string {
@@ -15,7 +16,7 @@ func FileToSlice(filename string) []string {
 
 	contentTemp, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Println("Ошибка чтения из файла", filename)
+		LogWrite("Ошибка чтения из файла: "+filename, "warn")
 	}
 	content = strings.Split(string(contentTemp), "\n")
 
@@ -26,12 +27,12 @@ func WebToByte(url string) ([]byte, int) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Ошибка при получении данных. ", err)
+		LogWrite("Ошибка при получении данных: "+error.Error(err), "warn")
 		return nil, 502
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Ошибка при получении данных. ", err)
+		LogWrite("Ошибка при получении данных: "+error.Error(err), "warn")
 		return nil, 500
 	}
 	defer resp.Body.Close()
@@ -66,4 +67,17 @@ func IncidentSliceValueDelete(incidentSlice []structure.IncidentData, num int) [
 	incidentSlice = incidentSlice[:lenIncidentSlice-1]
 
 	return incidentSlice
+}
+
+func LogWrite(logString string, logType string) {
+
+	switch logType {
+	case "error":
+		log.Fatal("ERROR: ", time.Now(), " ", logString)
+	case "warn":
+		log.Println("WARN: ", time.Now(), " ", logString)
+	default:
+		log.Println("INFO: ", time.Now(), " ", logString)
+	}
+
 }

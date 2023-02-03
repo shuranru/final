@@ -7,15 +7,22 @@ type SMSData struct {
 	Provider     string `json:"provider"`
 }
 
+type MMSData struct {
+	Country      string `json:"country"`
+	Provider     string `json:"provider"`
+	Bandwidth    string `json:"bandwidth"`
+	ResponseTime string `json:"response_time"`
+}
+
 type VoiceCallData struct {
-	Country      string  `json:"country"`
-	Bandwidth    int     `json:"bandwidth"`
-	ResponseTime int     `json:"response_time"`
-	Provider     string  `json:"provider"`
-	Stability    float32 `json:"stability"`
-	TTFB         int     `json:"ttfb"`
-	Purity       int     `json:"purity"`
-	Duration     int     `json:"duration"`
+	Country             string  `json:"country"`
+	Bandwidth           int     `json:"bandwidth"`
+	ResponseTime        int     `json:"response_time"`
+	Provider            string  `json:"provider"`
+	ConnectionStability float32 `json:"connection_stability"`
+	TTFB                int     `json:"ttfb"`
+	VoicePurity         int     `json:"voice_purity"`
+	MedianOfCallsTime   int     `json:"median_of_calls_time"`
 }
 
 type EmailData struct {
@@ -31,13 +38,6 @@ type BillingData struct {
 	Recurring      bool `json:"recurring"`
 	FraudControl   bool `json:"fraud_control"`
 	CheckoutPage   bool `json:"checkout_page"`
-}
-
-type MMSData struct {
-	Country      string `json:"country"`
-	Provider     string `json:"provider"`
-	Bandwidth    string `json:"bandwidth"`
-	ResponseTime string `json:"response_time"`
 }
 
 type SupportData struct {
