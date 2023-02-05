@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"final/pkg/config"
 	"final/pkg/modify"
+	"final/pkg/service"
 	"final/pkg/structure"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func main() {
@@ -28,12 +31,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	Result := structure.ResultT{}
 
-	if len(resultData.SMS) == 0 ||
-		len(resultData.MMS) == 0 ||
-		len(resultData.VoiceCall) == 0 ||
-		len(resultData.Email) == 0 ||
-		len(resultData.Support) == 0 ||
-		len(resultData.Incidents) == 0 {
+	if len(resultData.SMS) == 0 {
 
 		Result = structure.ResultT{
 			false,
@@ -69,39 +67,64 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 func getResultData() structure.ResultSetT {
 
-	chanSMS := make(chan [][]structure.SMSData, 1)
-	chanMMS := make(chan [][]structure.MMSData, 1)
-	chanVoice := make(chan []structure.VoiceCallData, 1)
-	chanEmail := make(chan map[string][][]structure.EmailData, 1)
-	chanBilling := make(chan structure.BillingData, 1)
-	chanSupport := make(chan []int, 1)
-	chanIncident := make(chan []structure.IncidentData, 1)
+	resultSet := structure.ResultSetT{}
 
-	go modify.SMSModify(chanSMS)
-	go modify.MMSModify(chanMMS)
-	go modify.VoiceModify(chanVoice)
-	go modify.EmailModify(chanEmail)
-	go modify.BillingModify(chanBilling)
-	go modify.SupportModify(chanSupport)
-	go modify.IncidentModify(chanIncident)
+	chanSMS := make(chan structure.SMSDataWError, 1)
+	chanMMS := make(chan structure.MMSDataWError, 1)
+	chanVoice := make(chan structure.VoiceCallDataWError, 1)
+	chanEmail := make(chan structure.EmailDataWError, 1)
+	chanBilling := make(chan structure.BillingDataWError, 1)
+	chanSupport := make(chan structure.SupportDataWError, 1)
+	chanIncident := make(chan structure.IncidentDataWError, 1)
 
-	smsData := <-chanSMS
-	mmsData := <-chanMMS
-	voiceCallData := <-chanVoice
-	emailData := <-chanEmail
-	billingData := <-chanBilling
-	supportData := <-chanSupport
-	incidentData := <-chanIncident
+	chanError := make(chan string, 8)
 
-	ResultSet := structure.ResultSetT{
-		SMS:       smsData,
-		MMS:       mmsData,
-		VoiceCall: voiceCallData,
-		Email:     emailData,
-		Billing:   billingData,
-		Support:   supportData,
-		Incidents: incidentData,
+	go modify.SMSModify(chanSMS, chanError)
+	go modify.MMSModify(chanMMS, chanError)
+	go modify.VoiceModify(chanVoice, chanError)
+	go modify.EmailModify(chanEmail, chanError)
+	go modify.BillingModify(chanBilling, chanError)
+	go modify.SupportModify(chanSupport, chanError)
+	go modify.IncidentModify(chanIncident, chanError)
+
+	timeRequest := time.Now().Unix()
+
+	for {
+		if len(chanError) > 0 {
+			resultSet = structure.ResultSetT{}
+			break
+		} else if len(chanSMS) > 0 &&
+			len(chanMMS) > 0 &&
+			len(chanVoice) > 0 &&
+			len(chanEmail) > 0 &&
+			len(chanBilling) != 0 &&
+			len(chanSupport) > 0 &&
+			len(chanIncident) > 0 {
+
+			smsData := <-chanSMS
+			mmsData := <-chanMMS
+			voiceCallData := <-chanVoice
+			emailData := <-chanEmail
+			billingData := <-chanBilling
+			supportData := <-chanSupport
+			incidentData := <-chanIncident
+
+			resultSet = structure.ResultSetT{
+				SMS:       smsData.SMSDataStruct,
+				MMS:       mmsData.MMSDataStruct,
+				VoiceCall: voiceCallData.VoiceCallDataStruct,
+				Email:     emailData.EmailData,
+				Billing:   billingData.BillingDataStruct,
+				Support:   supportData.SupportData,
+				Incidents: incidentData.IncidentDataStruct,
+			}
+			break
+		} else if time.Now().Unix() > timeRequest+config.TimeOut {
+			resultSet = structure.ResultSetT{}
+			service.LogWrite("Ошибка получения данных, сработал таймаут в "+strconv.Itoa(int(config.TimeOut))+" сек.", "warn")
+			break
+		}
 	}
 
-	return ResultSet
+	return resultSet
 }

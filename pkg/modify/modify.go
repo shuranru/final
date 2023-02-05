@@ -8,14 +8,16 @@ import (
 	"final/pkg/structure"
 )
 
-func SMSModify(chanSMS chan [][]structure.SMSData) {
+func SMSModify(chanSMS chan structure.SMSDataWError, chanError chan string) {
 
 	smsTemp := read.SMSFileRead()
 
 	lenSMSData := len(smsTemp)
 	if lenSMSData == 0 {
-		service.LogWrite("SMS: Ошибка во входящих данных. Нет данных", "warn")
-		chanSMS <- [][]structure.SMSData{}
+		errorMessage := "SMS: Ошибка во входящих данных. Нет данных"
+		service.LogWrite(errorMessage, "warn")
+		//chanSMS <- structure.SMSDataWError{[][]structure.SMSData{}, errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
@@ -41,19 +43,21 @@ func SMSModify(chanSMS chan [][]structure.SMSData) {
 	returnSMSTemp[0] = smsTemp
 	returnSMSTemp[1] = smsProviderTemp
 
-	chanSMS <- returnSMSTemp
+	chanSMS <- structure.SMSDataWError{returnSMSTemp, nil}
 	return
 
 }
 
-func MMSModify(chanMMS chan [][]structure.MMSData) {
+func MMSModify(chanMMS chan structure.MMSDataWError, chanError chan string) {
 
 	mmsTemp := read.MMSWebRead()
 
 	lenMMSData := len(mmsTemp)
 	if lenMMSData == 0 {
-		service.LogWrite("MMS: Ошибка во входящих данных. Нет данных", "warn")
-		chanMMS <- [][]structure.MMSData{}
+		errorMessage := "MMS: Ошибка во входящих данных. Нет данных"
+		service.LogWrite(errorMessage, "warn")
+		//chanMMS <- structure.MMSDataWError{[][]structure.MMSData{}, errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
@@ -79,34 +83,38 @@ func MMSModify(chanMMS chan [][]structure.MMSData) {
 	returnMMSTemp[0] = mmsTemp
 	returnMMSTemp[1] = mmsProviderTemp
 
-	chanMMS <- returnMMSTemp
+	chanMMS <- structure.MMSDataWError{returnMMSTemp, nil}
 	return
 
 }
 
-func VoiceModify(chanVoice chan []structure.VoiceCallData) {
+func VoiceModify(chanVoice chan structure.VoiceCallDataWError, chanError chan string) {
 
 	voiceTemp := read.VoiceFileRead()
 
 	if len(voiceTemp) == 0 {
-		service.LogWrite("Voice: Ошибка во входящих данных. Нет данных", "warn")
-		chanVoice <- []structure.VoiceCallData{}
+		errorMessage := "Voice: Ошибка во входящих данных. Нет данных"
+		service.LogWrite(errorMessage, "warn")
+		//chanVoice <- structure.VoiceCallDataWError{[]structure.VoiceCallData{}, errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
-	chanVoice <- voiceTemp
+	chanVoice <- structure.VoiceCallDataWError{voiceTemp, nil}
 	return
 
 }
 
-func EmailModify(chanEmail chan map[string][][]structure.EmailData) {
+func EmailModify(chanEmail chan structure.EmailDataWError, chanError chan string) {
 
 	emailData := read.EmailFileRead()
 
 	lenEmailData := len(emailData)
 	if lenEmailData == 0 {
-		service.LogWrite("Email: Ошибка во входящих данных. Нет данных", "warn")
-		chanEmail <- map[string][][]structure.EmailData{}
+		errorMessage := "Email: Ошибка во входящих данных. Нет данных"
+		service.LogWrite(errorMessage, "warn")
+		//chanEmail <- structure.EmailDataWError{map[string][][]structure.EmailData{}, errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
@@ -135,33 +143,36 @@ func EmailModify(chanEmail chan map[string][][]structure.EmailData) {
 		}
 	}
 
-	chanEmail <- returnEmailData
+	chanEmail <- structure.EmailDataWError{returnEmailData, nil}
 	return
 
 }
 
-func BillingModify(chanBilling chan structure.BillingData) {
+func BillingModify(chanBilling chan structure.BillingDataWError, chanError chan string) {
 
-	billingTempStruct, err := read.BillingFileRead()
+	billingTempStruct, errorMessage := read.BillingFileRead()
 
-	if err != "" {
-		service.LogWrite(err, "warn")
-		chanBilling <- billingTempStruct
+	if errorMessage != "" {
+		service.LogWrite(errorMessage, "warn")
+		//chanBilling <- structure.BillingDataWError{structure.BillingData{}, errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
-	chanBilling <- billingTempStruct
+	chanBilling <- structure.BillingDataWError{billingTempStruct, nil}
 	return
 
 }
 
-func SupportModify(chanSupport chan []int) {
+func SupportModify(chanSupport chan structure.SupportDataWError, chanError chan string) {
 
 	supportData := read.SupportWebRead()
 
 	if len(supportData) == 0 {
-		service.LogWrite("Support: Ошибка во входящих данных. Нет данных", "warn")
-		chanSupport <- []int{}
+		errorMessage := "Support: Ошибка во входящих данных. Нет данных"
+		service.LogWrite(errorMessage, "warn")
+		//chanSupport <- structure.SupportDataWError{[]int{}, errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
@@ -183,19 +194,21 @@ func SupportModify(chanSupport chan []int) {
 
 	supportModifyTemp[1] = int(float32(ticketCount) * config.TimeTicket)
 
-	chanSupport <- supportModifyTemp
+	chanSupport <- structure.SupportDataWError{supportModifyTemp, nil}
 	return
 
 }
 
-func IncidentModify(chanIncident chan []structure.IncidentData) {
+func IncidentModify(chanIncident chan structure.IncidentDataWError, chanError chan string) {
 
 	incident := read.IncidentWebRead()
 
 	lenIncident := len(incident)
 	if lenIncident == 0 {
-		service.LogWrite("Incident: Ошибка во входящих данных. Нет данных", "warn")
-		chanIncident <- []structure.IncidentData{}
+		errorMessage := "Incident: Ошибка во входящих данных. Нет данных"
+		service.LogWrite(errorMessage, "warn")
+		//chanIncident <- structure.IncidentDataWError{IncidentDataStruct: []structure.IncidentData{}, Error: errors.New(errorMessage)}
+		chanError <- errorMessage
 		return
 	}
 
@@ -214,6 +227,6 @@ func IncidentModify(chanIncident chan []structure.IncidentData) {
 		}
 	}
 
-	chanIncident <- incidentTemp
+	chanIncident <- structure.IncidentDataWError{incidentTemp, nil}
 	return
 }

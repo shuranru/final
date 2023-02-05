@@ -7,11 +7,21 @@ type SMSData struct {
 	Provider     string `json:"provider"`
 }
 
+type SMSDataWError struct {
+	SMSDataStruct [][]SMSData
+	Error         error
+}
+
 type MMSData struct {
 	Country      string `json:"country"`
 	Provider     string `json:"provider"`
 	Bandwidth    string `json:"bandwidth"`
 	ResponseTime string `json:"response_time"`
+}
+
+type MMSDataWError struct {
+	MMSDataStruct [][]MMSData
+	Error         error
 }
 
 type VoiceCallData struct {
@@ -25,10 +35,20 @@ type VoiceCallData struct {
 	MedianOfCallsTime   int     `json:"median_of_calls_time"`
 }
 
+type VoiceCallDataWError struct {
+	VoiceCallDataStruct []VoiceCallData
+	Error               error
+}
+
 type EmailData struct {
 	Country      string `json:"country"`
 	Provider     string `json:"provider"`
 	DeliveryTime int    `json:"delivery_time"`
+}
+
+type EmailDataWError struct {
+	EmailData map[string][][]EmailData
+	Error     error
 }
 
 type BillingData struct {
@@ -40,14 +60,29 @@ type BillingData struct {
 	CheckoutPage   bool `json:"checkout_page"`
 }
 
+type BillingDataWError struct {
+	BillingDataStruct BillingData
+	Error             error
+}
+
 type SupportData struct {
 	Topic         string `json:"topic"`
 	ActiveTickets int    `json:"active_tickets"`
 }
 
+type SupportDataWError struct {
+	SupportData []int
+	Error       error
+}
+
 type IncidentData struct {
 	Topic  string `json:"topic"`
 	Status string `json:"status"` // возможные статусы active и closed
+}
+
+type IncidentDataWError struct {
+	IncidentDataStruct []IncidentData
+	Error              error
 }
 
 type ResultSetT struct {

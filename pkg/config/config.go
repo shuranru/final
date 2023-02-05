@@ -12,3 +12,5 @@ const IncidentWeb string = `http://localhost:8383/accendent` //Адрес заг
 const ServerWeb string = `localhost:8282` //Адрес локального сервера для запуска
 
 const TimeTicket float32 = 60.0 / 18.0 //Среднее время обработки тикета
+
+const TimeOut int64 = 30 //Максимальный таймаут в секундах для получения данных
